@@ -1,0 +1,108 @@
+name: Full-stack evaluation lab
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: lab
+          POSTGRES_PASSWORD: lab
+          POSTGRES_DB: lab
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U lab -d lab"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://lab:lab@127.0.0.1:5432/lab
+      TEST_DATABASE_URL: postgresql://lab:lab@127.0.0.1:5432/lab
+      TOOL_API_URL: http://127.0.0.1:3001
+      LAB_INTEGRATION: "1"
+      LAB_INTERNAL_KEY: local-internal-key
+      LAB_REVIEW_KEY: local-review-key
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            services/tool-api/package-lock.json
+            apps/console/package-lock.json
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: control-plane/requirements.lock
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --require-hashes -r control-plane/requirements.lock
+          npm run install:all
+      - name: Build and operational contracts
+        run: |
+          npm run build
+          npm test
+      - name: Dependency advisories
+        run: |
+          python -m pip install pip-audit==2.10.1
+          python -m pip_audit -r control-plane/requirements.lock --progress-spinner off
+          npm --prefix services/tool-api audit --audit-level=high
+          npm --prefix apps/console audit --audit-level=high
+      - name: Start real services
+        run: |
+          node services/tool-api/dist/index.js > tool-api.log 2>&1 &
+          python -m uvicorn lab.app:app --app-dir control-plane --host 127.0.0.1 --port 8000 > control-plane.log 2>&1 &
+          python scripts/wait_for_services.py
+      - name: Deterministic unit and integration evaluation
+        run: python -m pytest -q --junitxml=artifacts/local/pytest.xml
+      - name: Chromium principal review flow
+        working-directory: apps/console
+        run: |
+          npx playwright install --with-deps chromium
+          npm run dev > ../../console.log 2>&1 &
+          LAB_BASE_URL=http://127.0.0.1:5173 python ../../scripts/wait_for_services.py
+          npm run test:e2e
+      - name: Retain evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: verification-evidence
+          path: |
+            artifacts/local/
+            apps/console/test-results/
+            apps/console/playwright-report/
+            tool-api.log
+            control-plane.log
+            console.log
+  compose-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build and start the documented stack
+        run: docker compose up --build -d --wait --wait-timeout 180
+      - name: Verify real seeded examples through the console gateway
+        run: |
+          curl --fail http://127.0.0.1:8080/api/health
+          python -c "import json,urllib.request; runs=json.load(urllib.request.urlopen('http://127.0.0.1:8080/api/runs')); assert len(runs)==3; assert sum(r['passed'] is True for r in runs)==2; assert any(r['provider']=='careless' and r['passed'] is False for r in runs)"
+      - name: Preserve container logs
+        if: always()
+        run: docker compose logs --no-color > compose.log
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: compose-smoke-evidence
+          path: compose.log
+      - name: Stop ephemeral services
+        if: always()
+        run: docker compose down

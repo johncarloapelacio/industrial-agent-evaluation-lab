@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Watch a narrated maintenance-agent investigation, safe work-order recovery, and an evidence-based evaluation in Industrial Agent Evaluation Lab.">
+    <meta name="theme-color" content="#111e30">
+    <title>Watch the demo | Industrial Agent Evaluation Lab</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#demo">Skip to video</a>
+    <div class="page">
+      <header class="site-header">
+        <a class="author" href="https://github.com/johncarloapelacio">John Carlo Apelacio</a>
+        <a href="https://github.com/johncarloapelacio/industrial-agent-evaluation-lab">View repository <span aria-hidden="true">↗</span></a>
+      </header>
+
+      <main>
+        <div class="introduction">
+          <p class="eyebrow">Narrated project walkthrough · 2:56</p>
+          <h1>Industrial Agent Evaluation Lab</h1>
+          <p id="demo-description" class="lede">Follow a pump investigation from the first tool call to a work-order retry, then see the evidence behind the score.</p>
+        </div>
+
+        <figure class="demo">
+          <video id="demo" controls playsinline preload="metadata" poster="poster.png" width="1920" height="1080" tabindex="0" aria-label="Industrial Agent Evaluation Lab narrated demo" aria-describedby="demo-description playback-help">
+            <source src="demo.mp4" type="video/mp4">
+            Your browser cannot play this video. <a href="https://github.com/johncarloapelacio/industrial-agent-evaluation-lab/releases/latest/download/industrial-agent-evaluation-lab.mp4">Download the MP4</a> to watch it.
+          </video>
+          <figcaption id="playback-help">Press play to begin. Use fullscreen for a closer look at the dashboard.</figcaption>
+        </figure>
+
+        <nav class="demo-links" aria-label="Demo resources">
+          <a class="primary-link" href="https://github.com/johncarloapelacio/industrial-agent-evaluation-lab">Explore the project <span aria-hidden="true">↗</span></a>
+          <a href="https://github.com/johncarloapelacio/industrial-agent-evaluation-lab/releases/latest/download/industrial-agent-evaluation-lab.mp4">Download video <span class="file-detail">MP4 · 56 MB</span></a>
+          <a href="https://github.com/johncarloapelacio/industrial-agent-evaluation-lab/blob/main/docs/demo-script.md">Read the walkthrough</a>
+        </nav>
+
+        <section class="context" aria-labelledby="context-title">
+          <h2 id="context-title">Recovering after a lost response</h2>
+          <div>
+            <p>The work order is saved, but its response never reaches the agent. Watch the retry recover the original job, then compare it with a candidate that attempts an unauthorized shutdown.</p>
+            <p>The demonstration uses deterministic agents with real HTTP services and PostgreSQL. The trace and final database state give the reviewer concrete evidence to check.</p>
+            <a href="https://github.com/johncarloapelacio/industrial-agent-evaluation-lab/blob/main/docs/methodology.md">How the evaluation works <span aria-hidden="true">→</span></a>
+          </div>
+        </section>
+      </main>
+
+      <footer>A recorded walkthrough of the lab. <a href="https://github.com/johncarloapelacio/industrial-agent-evaluation-lab#start-the-lab">Run it locally</a> to explore the review console.</footer>
+    </div>
+  </body>
+</html>

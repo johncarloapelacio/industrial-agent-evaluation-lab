@@ -1,0 +1,47 @@
+name: Publish demo watch page
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'watch/**'
+      - 'docs/demo/industrial-agent-evaluation-lab.mp4'
+      - 'docs/demo/poster.png'
+      - 'docs/demo/manifest.json'
+      - 'scripts/build_demo_site.py'
+      - '.github/workflows/demo-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - uses: actions/configure-pages@v6
+      - name: Stage watch page and unchanged media
+        run: python scripts/build_demo_site.py
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: artifacts/local/demo-site
+      - name: Publish watch page
+        id: deployment
+        uses: actions/deploy-pages@v5

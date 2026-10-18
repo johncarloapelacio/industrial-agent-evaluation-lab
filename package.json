@@ -1,0 +1,14 @@
+{
+  "name": "industrial-agent-evaluation-lab",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A replayable evaluation platform for tool-using maintenance agents operating against live REST services and PostgreSQL.",
+  "scripts": {
+    "install:all": "npm --prefix services/tool-api ci && npm --prefix apps/console ci",
+    "build": "npm --prefix services/tool-api run build && npm --prefix apps/console run build",
+    "test": "npm --prefix services/tool-api test && npm --prefix apps/console test",
+    "test:e2e": "npm --prefix apps/console run test:e2e",
+    "start": "docker compose up --build -d --wait"
+  },
+  "engines": {"node": ">=22.12.0"}
+}

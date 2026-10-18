@@ -1,0 +1,73 @@
+name: industrial-agent-evaluation-lab
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lab}
+      POSTGRES_DB: ${POSTGRES_DB:-lab}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - lab-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  tools:
+    build:
+      context: .
+      dockerfile: services/tool-api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lab}:${POSTGRES_PASSWORD:-lab}@postgres:5432/${POSTGRES_DB:-lab}
+      LAB_INTERNAL_KEY: ${LAB_INTERNAL_KEY:-local-internal-key}
+      HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:3001:3001"
+    depends_on:
+      postgres: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+  control:
+    build:
+      context: .
+      dockerfile: control-plane/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lab}:${POSTGRES_PASSWORD:-lab}@postgres:5432/${POSTGRES_DB:-lab}
+      TOOL_API_URL: http://tools:3001
+      LAB_INTERNAL_KEY: ${LAB_INTERNAL_KEY:-local-internal-key}
+      LAB_REVIEW_KEY: ${LAB_REVIEW_KEY:-local-review-key}
+      LAB_SEED_DEMO: ${LAB_SEED_DEMO:-1}
+      MODEL_BASE_URL: ${MODEL_BASE_URL:-https://api.example.invalid/v1}
+      MODEL_API_KEY: ${MODEL_API_KEY:-}
+      MODEL_NAME: ${MODEL_NAME:-}
+      MODEL_MAX_STEPS: ${MODEL_MAX_STEPS:-24}
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      tools: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      start_period: 45s
+      retries: 20
+  console:
+    build:
+      context: apps/console
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      control: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/api/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+volumes:
+  lab-data:
